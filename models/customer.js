@@ -14,6 +14,14 @@ class Customer {
     this.notes = notes;
   }
 
+  /**
+  * Return the full name of the customer
+  * @returns firstName lastName
+  */
+  get fullName() {
+    return this.firstName + ' ' + this.lastName;
+  }
+
   /** find all customers. */
 
   static async all() {
@@ -77,6 +85,12 @@ class Customer {
         [this.firstName, this.lastName, this.phone, this.notes, this.id]
       );
     }
+
+    await db.query(
+      `UPDATE customers 
+      SET 
+        document_vectors = (TO_TSVECTOR(first_name) || TO_TSVECTOR(last_name) || TO_TSVECTOR(COALESCE(phone , '')) || TO_TSVECTOR(notes))
+      WHERE id=$1`, [this.id]);
   }
 }
 

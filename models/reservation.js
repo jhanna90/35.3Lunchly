@@ -8,12 +8,40 @@ const db = require("../db");
 /** A reservation for a party */
 
 class Reservation {
-  constructor({id, customerId, numGuests, startAt, notes}) {
+  constructor({ id, customerId, numGuests, startAt, notes }) {
     this.id = id;
     this.customerId = customerId;
     this.numGuests = numGuests;
     this.startAt = startAt;
     this.notes = notes;
+  }
+
+  /** getter for numGuests */
+  get numGuests() {
+    return this._numGuests;
+  }
+
+  /** setter for numGuest */
+  set numGuests(val) {
+    if (val === undefined) {
+      throw Error("Number of Guests is required");
+    }
+
+    if (parseInt(val) < 1) {
+      throw Error("Number of Guest must be equal or greater than 1");
+    }
+
+    this._numGuests = parseInt(val);
+  }
+
+  /** getter for startAt */
+  get startAt() {
+    return this._startAt;
+  }
+
+  /** setter for startAt */
+  set startAt(val) {
+    this._startAt = new Date(val);
   }
 
   /** formatter for startAt */
@@ -26,17 +54,38 @@ class Reservation {
 
   static async getReservationsForCustomer(customerId) {
     const results = await db.query(
-          `SELECT id, 
+      `SELECT id, 
            customer_id AS "customerId", 
            num_guests AS "numGuests", 
            start_at AS "startAt", 
            notes AS "notes"
          FROM reservations 
          WHERE customer_id = $1`,
-        [customerId]
+      [customerId]
     );
 
     return results.rows.map(row => new Reservation(row));
+  }
+
+
+  /** save this reservation. */
+
+  async save() {
+    if (this.id === undefined) {
+      const result = await db.query(
+        `INSERT INTO reservations (customer_id, start_at, num_guests, notes)
+             VALUES ($1, $2, $3, $4)
+             RETURNING id`,
+        [this.customerId, this.startAt, this.numGuests, this.notes]
+      );
+      this.id = result.rows[0].id;
+    } else {
+      await db.query(
+        `UPDATE reservations SET start_at=$1, num_guests=$2, notes=$3
+             WHERE id=$4`,
+        [this.startAt, this.this.numGuests, this.notes, this.id]
+      );
+    }
   }
 }
 
